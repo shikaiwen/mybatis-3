@@ -20,6 +20,14 @@
 
 <mapper namespace="org.apache.ibatis.domain.blog.mappers.AuthorMapper">
 
+<sql id="Base_Column_List">
+		ID,
+		USERNAME,
+		PASSWORD,
+		EMAIL,
+		BIO
+	</sql>
+
 	<parameterMap id="selectAuthor" type="org.apache.ibatis.domain.blog.Author">
 		<parameter property="id" />
 	</parameterMap>
@@ -61,9 +69,16 @@
 			<arg column="favourite_section" javaType="org.apache.ibatis.domain.blog.Section" />
 		</constructor>
 	</resultMap>
+	
+
+	<select id="selectAutherKevin" resultMap="selectAuthor" >
+		select 
+		<include refid="Base_Column_List"  prefix="a." excludeCols="PASSWORD,BIO"  />
+		from author
+	</select>
 
 	<select id="selectAllAuthors" resultType="org.apache.ibatis.domain.blog.Author">
-		select * from author
+		select * from author 
 	</select>
 
 	<select id="selectAllAuthorsSet" resultType="org.apache.ibatis.domain.blog.Author">

@@ -241,6 +241,8 @@ lang CDATA #IMPLIED
 <!ELEMENT include (property+)?>
 <!ATTLIST include
 refid CDATA #REQUIRED
+prefix CDATA #IMPLIED
+excludeCols CDATA #IMPLIED
 >
 
 <!ELEMENT bind EMPTY>

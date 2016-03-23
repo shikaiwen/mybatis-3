@@ -15,6 +15,12 @@
  */
 package org.apache.ibatis.builder.xml;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+import java.util.StringTokenizer;
+
 import org.apache.ibatis.builder.BuilderException;
 import org.apache.ibatis.builder.IncompleteElementException;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
@@ -23,8 +29,6 @@ import org.apache.ibatis.parsing.XNode;
 import org.apache.ibatis.session.Configuration;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-
-import java.util.Properties;
 
 /**
  * @author Frank D. Martinez [mnesarco]
@@ -59,6 +63,25 @@ public class XMLIncludeTransformer {
       Properties fullContext;
 
       String refid = getStringAttribute(source, "refid");
+      
+
+      //获取prefix
+      String includePrefix = null ; 
+      if( source.getAttributes().getNamedItem( "prefix" ) != null){
+    	  includePrefix = source.getAttributes().getNamedItem( "prefix" ).getNodeValue();
+      }
+      //将所有要排除的列放到List中保存
+      String excludeAttr = null; 
+      List<String> exlucdeAttrList = new ArrayList<String>();
+      if( source.getAttributes().getNamedItem(  "excludeCol" )  != null){
+    	  excludeAttr = source.getAttributes().getNamedItem(  "excludeCol" ) .getNodeValue();
+          String [] excludeAttrArr = excludeAttr.split(",");
+          for(int i=0;i < excludeAttrArr.length;i++){
+        	  exlucdeAttrList.add( excludeAttrArr[i] );  
+          }
+      }
+
+      
       // replace variables in include refid value
       refid = PropertyParser.parse(refid, variablesContext);
       Node toInclude = findSqlFragment(refid);
@@ -73,9 +96,28 @@ public class XMLIncludeTransformer {
         fullContext = variablesContext;
       }
       applyIncludes(toInclude, fullContext);
+     
       if (toInclude.getOwnerDocument() != source.getOwnerDocument()) {
         toInclude = source.getOwnerDocument().importNode(toInclude, true);
       }
+      
+      //如果prefix 不为空，则应用此prefix
+      if(includePrefix != null && !"".equals(includePrefix)){
+    	  String sqlTextContent = toInclude.getTextContent();
+          String rawText = sqlTextContent.replaceAll("[\\s]*", "");
+          StringTokenizer strTokenizer = new StringTokenizer(rawText,",");
+          StringBuilder sqlSb = new StringBuilder();
+//          String prefix = "a.";
+          while(strTokenizer.hasMoreElements()){
+        	  String col = (String)strTokenizer.nextElement();
+        	  if(exlucdeAttrList.contains( col ))  continue; 
+        	  sqlSb.append(includePrefix + col + ",");
+          }
+          sqlSb.deleteCharAt(sqlSb.length()-1);
+          toInclude.setTextContent(sqlSb.toString());
+      }
+    
+      //这下面会用sql节点替换掉include节点，从这里修改
       source.getParentNode().replaceChild(toInclude, source);
       while (toInclude.hasChildNodes()) {
         toInclude.getParentNode().insertBefore(toInclude.getFirstChild(), toInclude);
